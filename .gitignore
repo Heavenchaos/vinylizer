@@ -1,0 +1,43 @@
+# 构建目录
+build/
+build-gui/
+
+# IDE
+.vscode/
+.vs/
+.idea/
+
+# 编译产物
+*.obj
+*.exe
+*.dll
+*.lib
+*.exp
+*.pdb
+*.log
+*.ilk
+*.cache
+*.deps
+
+# CMake 缓存与生成文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.vcxproj
+*.vcxproj.filters
+*.sln
+*.cmake
+!CMakeLists.txt
+
+# Qt 自动生成
+*_autogen/
+moc_*.cpp
+moc_*.cpp.d
+qrc_*.cpp
+ui_*.h
+
+# 系统文件
+Thumbs.db
+Desktop.ini
+.DS_Store
