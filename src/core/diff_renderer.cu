@@ -766,6 +766,9 @@ float DiffRenderer::render_forward_backward(int N, float* d_grad_history, int wr
     CUDA_CHECK(cudaMemsetAsync(s.d_grad_colors, 0, N * 3 * sizeof(float), s.stream));
     CUDA_CHECK(cudaMemsetAsync(s.d_grad_opacity, 0, N * sizeof(float), s.stream));
 
+    // Clear rendered_alpha before forward (tiles only write to active pixels)
+    CUDA_CHECK(cudaMemsetAsync(s.d_rendered_alpha, 0, s.total_pixels * sizeof(float), s.stream));
+
     // Step 1: Tile forward all tiles (produces d_output + d_rendered_alpha + scratch)
     cuda_render_tile_forward(
         s.d_px, s.d_py, s.d_ste_cx, s.d_ste_cy, s.d_ste_rx, s.d_ste_ry, s.d_ste_angle,

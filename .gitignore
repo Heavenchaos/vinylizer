@@ -37,6 +37,9 @@ moc_*.cpp.d
 qrc_*.cpp
 ui_*.h
 
+# Release 包
+*.zip
+
 # 系统文件
 Thumbs.db
 Desktop.ini

@@ -122,8 +122,8 @@ __global__ void render_tile_forward_kernel(
         float dsq = (u/rxc)*(u/rxc) + (v/ryc)*(v/ryc);
         float rn = sqrtf(fmaxf(dsq, 0.0f));
         float ar = alpha_228_tex(rn, alpha_tex);
-        alpha_scratch[i * tile_count + local_idx] = ar;
-        r_norm_scratch[i * tile_count + local_idx] = rn;
+        alpha_scratch[(long long)i * tile_count + local_idx] = ar;
+        r_norm_scratch[(long long)i * tile_count + local_idx] = rn;
 
         // Accumulate rendering (linear space, matching v5)
         float ae = ar * opacity[i], w = ae * T;
@@ -191,7 +191,7 @@ __global__ void render_backward_kernel(
     double lTN = 0.0;
     for (int j = 0; j < num_active; j++) {
         int i = active_indices[j];
-        float ar = valid ? alpha_scratch[i * tile_count + local_idx] : 0.0f;
+        float ar = valid ? alpha_scratch[(long long)i * tile_count + local_idx] : 0.0f;
         if (ar <= 0.0f) continue;
         float ae = ar * opacity[i];
         if (ae >= 1.0f) { lTN = -1e10; break; }
@@ -204,10 +204,10 @@ __global__ void render_backward_kernel(
     float car = bg_color[0], cag = bg_color[1], cab = bg_color[2];
     for (int j = 0; j < num_active; j++) {
         int i = active_indices[j];
-        float ar = valid ? alpha_scratch[i * tile_count + local_idx] : 0.0f;
+        float ar = valid ? alpha_scratch[(long long)i * tile_count + local_idx] : 0.0f;
         float lcx=0,lcy=0,lrx=0,lry=0,lan=0,lcr=0,lcg=0,lcb=0,lop=0;
         if (ar > 0.0f) {
-            float rn = valid ? r_norm_scratch[i * tile_count + local_idx] : 0.0f;
+            float rn = valid ? r_norm_scratch[(long long)i * tile_count + local_idx] : 0.0f;
             float opi = opacity[i], clr = colors[i*3+0], clg = colors[i*3+1], clb = colors[i*3+2];
             float cxi = cx[i], cyi = cy[i], rxi = rx[i], ryi = ry[i];
             float ae = ar * opi;
@@ -630,7 +630,7 @@ __global__ void render_tile_visibility_kernel(
     float T = 1.0f;
     for (int j = num_active - 1; j >= 0; j--) {
         int i = active_indices[j];
-        float ar = alpha_scratch[i * tile_count + local_idx];
+        float ar = alpha_scratch[(long long)i * tile_count + local_idx];
         if (ar <= 0.0f) continue;
         float ae = ar * opacity[i];
         if (ae > 0.0f) {

@@ -15,6 +15,9 @@ OptimizeWorker::OptimizeWorker(const PipelineConfig& config, QObject* parent)
     : QThread(parent), config_(config) {}
 
 void OptimizeWorker::run() {
+    // Reset CUDA context to ensure clean state (in case previous run corrupted it)
+    cudaDeviceReset();
+
     // 1. Load image (preserve alpha channel if present)
     auto img_bytes = read_file_bytes(config_.input_path);
     if (img_bytes.empty()) {
@@ -25,6 +28,20 @@ void OptimizeWorker::run() {
     cv::Mat img = cv::imdecode(img_bytes, cv::IMREAD_UNCHANGED);
     if (img.empty()) {
         VIN_ERROR("Cannot decode image: %s", config_.input_path.c_str());
+        emit done();
+        return;
+    }
+
+    // Normalize image format: force 8-bit, valid channel count
+    if (img.depth() != CV_8U) {
+        VIN_WARN("Image depth is %d, converting to 8-bit", img.depth());
+        double scale = (img.depth() == CV_16U) ? 1.0 / 257.0 : 255.0 / 65535.0;
+        img.convertTo(img, CV_8U, scale);
+    }
+    if (img.channels() == 1) {
+        cv::cvtColor(img, img, cv::COLOR_GRAY2BGR);
+    } else if (img.channels() != 3 && img.channels() != 4) {
+        VIN_ERROR("Unsupported channel count: %d", img.channels());
         emit done();
         return;
     }
