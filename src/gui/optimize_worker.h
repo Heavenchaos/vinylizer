@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QThread>
-#include <QImage>
 #include <string>
 #include <atomic>
 #include "core/pipeline.h"
@@ -17,7 +16,6 @@ public:
 
 signals:
     void progress(float pct, float mse, int iter);
-    void frame_ready(QImage frame);
     void done();
 
 private:

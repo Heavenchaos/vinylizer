@@ -34,12 +34,12 @@ static constexpr uint64_t LAYER_BLOB_SIZE = 0x80;
 
 // shape_id mapping: JSON type -> FH6 memory shape_id
 static const std::unordered_map<int, int> SHAPE_ID_MAP = {
-    {1, 101}, {16, 102}, {228, 228}
+    {1, 101}, {16, 102}, {103, 103}, {228, 228}
 };
 
 // Scale divisor
 static const std::unordered_map<int, int> SCALE_DIVISOR = {
-    {1, 127}, {16, 63}, {228, 63}
+    {1, 127}, {16, 63}, {103, 63}, {228, 63}
 };
 
 static const DWORD ACCESS_MASK = PROCESS_VM_READ | PROCESS_VM_WRITE |
@@ -138,40 +138,7 @@ std::pair<int, std::string> find_fh6_process() {
 // Validate JSON
 // ================================================================
 
-std::vector<nlohmann::json> validate_json(const std::string& path) {
-    std::ifstream file = open_ifstream(path);
-    if (!file.is_open()) {
-        VIN_ERROR("Cannot open JSON file: %s", path.c_str());
-        return {};
-    }
-
-    nlohmann::json data;
-    try {
-        data = nlohmann::json::parse(file);
-    } catch (const nlohmann::json::parse_error& e) {
-        VIN_ERROR("JSON parse error: %s", e.what());
-        return {};
-    }
-
-    if (!data.is_object() || !data.contains("shapes") || !data["shapes"].is_array()) {
-        VIN_ERROR("JSON must contain 'shapes' array");
-        return {};
-    }
-
-    std::vector<nlohmann::json> valid_shapes;
-    for (const auto& shape : data["shapes"]) {
-        int type = shape.value("type", -1);
-        if (type != 1 && type != 16 && type != 228) {
-            VIN_ERROR("Unsupported shape type: %d", type);
-            return {};
-        }
-        valid_shapes.push_back(shape);
-    }
-
-    VIN_INFO("JSON validated: %d shapes", static_cast<int>(valid_shapes.size()));
-    return valid_shapes;
-}
-
+// validate_json 已移至 common/json_to_image.cpp（纯 JSON 解析，无平台依赖，供 Linux 共用）
 // ================================================================
 // Strict layer check (replaces old score_layer)
 // ================================================================
@@ -293,14 +260,16 @@ LayerStats count_valid_layers(int pid, uint64_t table_address, int layer_count) 
 
         uint8_t shape_id;
         if (!read_mem(h, layer_ptr + LAYER_SHAPE_ID_OFFSET, &shape_id, 1)) continue;
-        if (shape_id != 101 && shape_id != 102) continue;
+        if (shape_id != 101 && shape_id != 102 && shape_id != 103 && shape_id != 228) continue;
 
         uint8_t mask;
         if (!read_mem(h, layer_ptr + LAYER_MASK_OFFSET, &mask, 1) || mask != 0) continue;
 
         stats.total_valid++;
         if (shape_id == 101) stats.count_101++;
-        if (shape_id == 102) stats.count_102++;
+        else if (shape_id == 102) stats.count_102++;
+        else if (shape_id == 103) stats.count_103++;
+        else if (shape_id == 228) stats.count_228++;
     }
 
     CloseHandle(h);
@@ -407,6 +376,9 @@ bool write_layer_h(HANDLE h, uint64_t table_address, int index, const nlohmann::
     float pos_data[2] = {x, -y};
     int divisor = SCALE_DIVISOR.count(shape_type) ? SCALE_DIVISOR.at(shape_type) : 63;
     float scale_data[2] = {w / divisor, h_val / divisor};
+    if (shape_type == 103) {
+        scale_data[1] = (h_val * (128.0f / 222.0f)) / divisor;
+    }
     float rot_data = 360.0f - rot_deg;
     uint8_t color_data[4] = {
         static_cast<uint8_t>(color[0]), static_cast<uint8_t>(color[1]),

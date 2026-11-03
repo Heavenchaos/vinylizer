@@ -13,41 +13,6 @@
 
 namespace vinylizer {
 
-std::tuple<int, int, int> compute_bg_color_from_result(
-    const cv::Mat& posterized, const cv::Mat& opaque_mask,
-    const std::vector<std::tuple<int, int, int>>& palette,
-    const cv::Mat& rgb_image)
-{
-    if (!posterized.empty() && !palette.empty()) {
-        std::unordered_map<int, int> counts;
-        for (int y = 0; y < posterized.rows; ++y) {
-            const auto* post_row = posterized.ptr<uint8_t>(y);
-            const auto* mask_row = opaque_mask.ptr<uint8_t>(y);
-            for (int x = 0; x < posterized.cols; ++x) {
-                if (mask_row[x] > 0) {
-                    counts[post_row[x]]++;
-                }
-            }
-        }
-
-        int dominant_label = -1, max_count = 0;
-        for (auto& [label, cnt] : counts) {
-            if (cnt > max_count) {
-                max_count = cnt;
-                dominant_label = label;
-            }
-        }
-        if (dominant_label >= 0 && dominant_label < static_cast<int>(palette.size())) {
-            return palette[dominant_label];
-        }
-    }
-
-    cv::Scalar mean = cv::mean(rgb_image, opaque_mask);
-    return {
-        static_cast<int>(mean[0]), static_cast<int>(mean[1]), static_cast<int>(mean[2])
-    };
-}
-
 // ── extract_alpha ────────────────────────────────────────────
 void Preprocessor::extract_alpha(const cv::Mat& input, cv::Mat& alpha,
                                   cv::Mat& rgb, cv::Mat& opaque) {
@@ -92,21 +57,21 @@ void Preprocessor::quantize_colors(const cv::Mat& rgb, const cv::Mat& mask,
     posterized = cv::Mat::zeros(h, w, CV_8UC1);
     palette.clear();
 
-    // Collect masked pixels
-    cv::Mat pixels;
+    // Collect masked pixels (pre-allocated for performance)
+    int num_pixels = cv::countNonZero(mask);
+    if (num_pixels == 0) return;
+    cv::Mat pixels(num_pixels, 3, CV_32F);
+    int idx = 0;
     for (int y = 0; y < h; ++y) {
         const auto* rgb_row = rgb.ptr<cv::Vec3b>(y);
         const auto* mask_row = mask.ptr<uint8_t>(y);
         for (int x = 0; x < w; ++x) {
             if (mask_row[x] > 0) {
-                cv::Mat row = (cv::Mat_<float>(1, 3) <<
-                    rgb_row[x][0], rgb_row[x][1], rgb_row[x][2]);
-                pixels.push_back(row);
+                float* p = pixels.ptr<float>(idx++);
+                p[0] = rgb_row[x][0]; p[1] = rgb_row[x][1]; p[2] = rgb_row[x][2];
             }
         }
     }
-
-    if (pixels.empty()) return;
 
     K = std::min(K, pixels.rows);
 
@@ -124,7 +89,7 @@ void Preprocessor::quantize_colors(const cv::Mat& rgb, const cv::Mat& mask,
     }
 
     // Fill posterized label map
-    int idx = 0;
+    idx = 0;
     for (int y = 0; y < h; ++y) {
         auto* post_row = posterized.ptr<uint8_t>(y);
         const auto* mask_row = mask.ptr<uint8_t>(y);

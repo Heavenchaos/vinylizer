@@ -17,7 +17,9 @@ public:
     int height() const { return h_; }
     cv::Mat clone_image() const { return image_.clone(); }
 
-    void add_shapes(const std::vector<Shape>& shapes);
+    void add_shapes(const std::vector<Shape>& shapes,
+                    const std::vector<std::string>& stamp_names = {},
+                    const std::vector<cv::Mat>& stamp_images = {});
     void clear();
 
 private:

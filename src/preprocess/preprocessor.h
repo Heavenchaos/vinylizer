@@ -7,12 +7,6 @@
 
 namespace vinylizer {
 
-// Compute dominant background color from preprocessed result
-std::tuple<int, int, int> compute_bg_color_from_result(const cv::Mat& posterized,
-    const cv::Mat& opaque_mask,
-    const std::vector<std::tuple<int, int, int>>& palette,
-    const cv::Mat& rgb_image);
-
 struct PreprocessResult {
     cv::Mat rgb_image;
     cv::Mat alpha_mask;

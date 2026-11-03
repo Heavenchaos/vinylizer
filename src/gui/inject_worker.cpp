@@ -69,13 +69,19 @@ void InjectWorker::run() {
 
     // 4. Statistics and sampling for user confirmation
     auto stats = count_valid_layers(pid, table_address, layer_count);
-    emit log_message(QString::fromUtf8("层表统计: 总共 %1 个有效图层, 椭圆(102): %2 个, 矩形(101): %3 个")
-                         .arg(stats.total_valid).arg(stats.count_102).arg(stats.count_101), false);
+    emit log_message(QString::fromUtf8("层表统计: 总共 %1 个有效图层, 椭圆(102): %2 个, 矩形(101): %3 个, "
+                                       "三角(103): %4 个, 软圆(228): %5 个")
+                         .arg(stats.total_valid).arg(stats.count_102).arg(stats.count_101)
+                         .arg(stats.count_103).arg(stats.count_228), false);
 
     emit log_message(QString::fromUtf8("随机采样 6 个图层:"), false);
     auto samples = sample_layers(pid, table_address, layer_count, 6);
     for (const auto& s : samples) {
-        const char* shape_name = (s.shape_id == 102) ? "ELLIPSE" : (s.shape_id == 101) ? "RECT" : "OTHER";
+        const char* shape_name =
+            (s.shape_id == 102) ? "ELLIPSE" :
+            (s.shape_id == 101) ? "RECT" :
+            (s.shape_id == 103) ? "TRI" :
+            (s.shape_id == 228) ? "SOFT" : "OTHER";
         emit log_message(QString("  层[%1]  pos=(%2, %3)  scale=(%4, %5)  rot=%6  rgba=(%7,%8,%9,%10)  shape=%11(%12)  mask=%13")
                              .arg(s.index)
                              .arg(s.pos_x, 0, 'f', 2).arg(s.pos_y, 0, 'f', 2)

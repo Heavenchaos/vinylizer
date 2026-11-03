@@ -51,8 +51,10 @@ uint64_t locate_layer_table(int pid, int layer_count);
 // Layer statistics
 struct LayerStats {
     int total_valid = 0;
-    int count_101 = 0;   // rectangle
-    int count_102 = 0;   // ellipse
+    int count_101 = 0;   // rectangle (type=1)
+    int count_102 = 0;   // ellipse (type=16)
+    int count_103 = 0;   // triangle (type=103)
+    int count_228 = 0;   // soft circle (type=228)
 };
 LayerStats count_valid_layers(int pid, uint64_t table_address, int layer_count);
 
@@ -64,8 +66,10 @@ bool write_layer(int pid, uint64_t table_address, int index, const nlohmann::jso
 bool write_clear_layer(int pid, uint64_t table_address, int index);
 LayerInfo read_layer_info(int pid, uint64_t layer_ptr);
 
-// With pre-opened HANDLE (reuse across calls — for inject worker)
+// With pre-opened HANDLE (reuse across calls — for inject worker; Windows-only)
+#ifdef _WIN32
 bool write_layer_h(HANDLE h, uint64_t table_address, int index, const nlohmann::json& shape_data);
 bool write_clear_layer_h(HANDLE h, uint64_t table_address, int index);
+#endif
 
 } // namespace vinylizer

@@ -4,6 +4,8 @@
 #include <fstream>
 #include <vector>
 #include <cstdint>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -88,5 +90,17 @@ inline std::ofstream open_ofstream(const std::string& path,
 }
 
 #endif
+
+// ============================================================
+// imread_utf8 — OpenCV 图片载入，兼容 Windows UTF-8 路径
+//
+// OpenCV 的 cv::imread 在 Windows 上使用 ANSI API，不支持中文/非 ASCII 路径。
+// 此函数通过 read_file_bytes + cv::imdecode 绕过该限制。
+// ============================================================
+inline cv::Mat imread_utf8(const std::string& utf8_path, int flags = cv::IMREAD_UNCHANGED) {
+    auto buf = read_file_bytes(utf8_path);
+    if (buf.empty()) return {};
+    return cv::imdecode(buf, flags);
+}
 
 } // namespace vinylizer
